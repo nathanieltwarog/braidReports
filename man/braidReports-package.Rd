@@ -16,7 +16,7 @@ values, and producing full BRAID analysis reports.
 \tabular{ll}{
 Package: \tab braidReports\cr
 Type: \tab Package\cr
-Version: \tab 0.5.2\cr
+Version: \tab 0.5.3\cr
 Date: \tab 2016-03-23\cr
 License: \tab GPL (>=3)\cr
 }
