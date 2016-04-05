@@ -234,7 +234,8 @@ makeBRAIDreport <- function(brdAnalysis,compounds,iaelevs,macs,control=list()) {
 	formatThisResponseMap <- function(plt,interp=TRUE,xl=NULL,yl=NULL,ttl=NULL) {
 		nplt <- plt
 		if (is.null(control$ztrans)) { nplt <- plt+scale_fill_gradientn(control$actlabel,colours=control$palette,limits=c(totmin,totmax)) }
-		else { nplt <- plt+scale_fill_gradientn(control$actlabel,colours=control$palette,limits=c(totmin,totmax),labels=control$ztrans) }
+		else { nplt <- plt+scale_fill_gradientn(control$actlabel,colours=control$palette,limits=c(totmin,totmax),
+						labels=function(z) signif(control$ztrans(z),2)) }
 		if (interp) {
 			if (iaelevs[1]>min(plt$data$z) && iaelevs[1]<max(plt$data$z)) { 
 				if (is.null(control$lnsize)) { nplt <- nplt+geom_contour(aes_string(z="z"),colour="black",breaks=iaelevs[1]) }
