@@ -467,7 +467,7 @@ getAdditiveParameters <- function(fpar,h1par=NULL,h2par=NULL) {
 	if (!is.null(h2par)) {
 		# par2 <- coef(brdAnalysis$hfit2$allfits[[brdAnalysis$hfit2$bestModIdx]])
 		addpar[2] <- exp(h2par[4])
-		addpar[c(4,7,9)] <- h1par[1:3]
+		addpar[c(4,7,9)] <- h2par[1:3]
 		if (!is.null(h1par)) { addpar[7] <- isIncr*min(isIncr*h1par[2],isIncr*h2par[2]) }
 	}
 	if (addpar[10]==fpar[8] || addpar[10]==fpar[9] ||
@@ -561,8 +561,14 @@ makeParamTable <- function(bsumm,fpar,parse=TRUE) {
 		tnms <- c(tnms,"E[f]")
 		tab <- c(tab,cistr(bsumm["EfAB",]))
 	}
-	tnms <- c(tnms,"kappa")
-	tab <- c(tab,cistr(bsumm["kappa",]))
+	if ("kappa" %in% rnms) {
+		tnms <- c(tnms,"kappa")
+		tab <- c(tab,cistr(bsumm["kappa",]))
+	}
+	if ("delta" %in% rnms) {
+		tnms <- c(tnms,"delta")
+		tab <- c(tab,cistr(bsumm["delta",]))
+	}
 	tab <- array(tab,dim=c(length(tab),1))
 	row.names(tab) <- tnms
 	return(tab)
