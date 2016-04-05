@@ -17,7 +17,7 @@ values, and producing full BRAID analysis reports.
 Package: \tab braidReports\cr
 Type: \tab Package\cr
 Version: \tab 0.5.3\cr
-Date: \tab 2016-03-23\cr
+Date: \tab 2016-04-05\cr
 License: \tab GPL (>=3)\cr
 }
 The heart of the package is the function \code{\link{responseMap}}, which produces a \code{ggplot2}

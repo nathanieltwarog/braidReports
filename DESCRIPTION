@@ -2,7 +2,7 @@ Package: braidReports
 Type: Package
 Title: Visualize Combined Action Response Surfaces and Report BRAID Analyses
 Version: 0.5.3
-Date: 2016-03-22
+Date: 2016-04-05
 Author: Nathaniel R. Twarog
 Maintainer: Nathaniel R. Twarog <nathaniel.twarog@stjude.org>
 Depends: ggplot2, braidrm, stats
