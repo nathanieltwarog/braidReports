@@ -338,8 +338,8 @@ makeBRAIDreport <- function(brdAnalysis,compounds,iaelevs,macs,control=list()) {
 		tklen <- thm$axis.ticks.length
 	}
 	for (i in 1:9) {
-		plts[[i]] <- plts[[i]]+theme(plot.margin=grid::unit(c(0,0,0,0),"npc"),legend.margin=grid::unit(-0.01,"npc"),
-														legend.key.width=grid::unit(0.01,"npc"),legend.key.height=grid::unit(0.0125,"npc"),
+		plts[[i]] <- plts[[i]]+theme(plot.margin=unit(c(0,0,0,0),"npc"),legend.margin=unit(-0.01,"npc"),
+														legend.key.width=unit(0.01,"npc"),legend.key.height=unit(0.0125,"npc"),
 														text=element_text(size=7),line=element_line(size=0.5))
 		if (i<8) {
 			if (control$clog) {
@@ -417,13 +417,13 @@ makeBRAIDreport <- function(brdAnalysis,compounds,iaelevs,macs,control=list()) {
 		tblist[[5]] <- cbind(orows2,otab2)
 	}
 	if (control$plot) {
-		grid::grid.newpage()
+		grid.newpage()
 		tbgb <- list()
-		tt <- gridExtra::ttheme_default(core=list(fg_params=list(fontsize=6,parse=TRUE),padding=grid::unit(c(2,2),"mm")),
-										colhead=list(fg_params=list(fontsize=6,parse=TRUE),padding=grid::unit(c(2,2),"mm")),
-										rowhead=list(fg_params=list(fontsize=6,parse=TRUE),padding=grid::unit(c(2,2),"mm")))
+		tt <- gridExtra::ttheme_default(core=list(fg_params=list(fontsize=6,parse=TRUE),padding=unit(c(2,2),"mm")),
+										colhead=list(fg_params=list(fontsize=6,parse=TRUE),padding=unit(c(2,2),"mm")),
+										rowhead=list(fg_params=list(fontsize=6,parse=TRUE),padding=unit(c(2,2),"mm")))
 		tbgb[[1]] <- addTableTitle(gridExtra::tableGrob(as.data.frame(ptab2),rows=rownames(ptab2),cols=NULL,theme=tt),"Best BRAID Fit")
-		rg <- grid::rectGrob(gp=grid::gpar(col="white"))
+		rg <- rectGrob(gp=gpar(col="white"))
 		itab1 <- array(paste(signif(itab1[,2],3),"~(",signif(itab1[,1],3),"-",signif(itab1[,3],3),")",sep=""),dim=c(nrow(itab1),1))
 		itab2 <- array(paste(signif(itab2[,2],3),"~(",signif(itab2[,1],3),"-",signif(itab2[,3],3),")",sep=""),dim=c(nrow(itab2),1))
 		tbgb[[2]] <- gridExtra::arrangeGrob(addTableTitle(gridExtra::tableGrob(as.data.frame(itab1),
@@ -449,7 +449,7 @@ makeBRAIDreport <- function(brdAnalysis,compounds,iaelevs,macs,control=list()) {
 		tbgb[[3]] <- gridExtra::arrangeGrob(addTableTitle(gridExtra::tableGrob(as.data.frame(otab1),rows=NULL,cols=ocols1,theme=tt),
 						otitle1),addTableTitle(gridExtra::tableGrob(as.data.frame(otab2),rows=NULL,cols=ocols2,theme=tt),otitle2),nrow=2)
 		
-		grid::grid.draw(gridExtra::arrangeGrob(plts[[1]],tbgb[[1]],tbgb[[2]],plts[[2]],plts[[3]],plts[[4]],plts[[5]],
+		grid.draw(gridExtra::arrangeGrob(plts[[1]],tbgb[[1]],tbgb[[2]],plts[[2]],plts[[3]],plts[[4]],plts[[5]],
 								plts[[6]],plts[[7]],rg,rg,rg,tbgb[[3]],plts[[8]],plts[[9]],heights=c(13,13,13,1,14),
 								top=paste(compounds[1],"vs.",compounds[2]),ncol=3))
 	}
@@ -576,11 +576,11 @@ makeParamTable <- function(bsumm,fpar,parse=TRUE) {
 }
 
 addTableTitle <- function(tg,titleStr="Title",fs=7) {
-	ttgrob <- grid::textGrob(titleStr,gp=grid::gpar(fontsize=fs))
-	wt <- max(grid::convertWidth(grid::grobWidth(ttgrob),"mm",FALSE),grid::convertWidth(sum(tg$widths),"mm",FALSE))
-	ht1 <- grid::convertHeight(grid::grobHeight(ttgrob),"mm",FALSE)+grid::unit(3,"mm")
-	ht2 <- grid::convertHeight(sum(tg$heights),"mm",FALSE)
-	tabgrob <- gtable::gtable(wt,grid::unit.c(ht1,ht2))
+	ttgrob <- textGrob(titleStr,gp=gpar(fontsize=fs))
+	wt <- max(convertWidth(grobWidth(ttgrob),"mm",FALSE),convertWidth(sum(tg$widths),"mm",FALSE))
+	ht1 <- convertHeight(grobHeight(ttgrob),"mm",FALSE)+unit(3,"mm")
+	ht2 <- convertHeight(sum(tg$heights),"mm",FALSE)
+	tabgrob <- gtable::gtable(wt,unit.c(ht1,ht2))
 	tabgrob <- gtable::gtable_add_grob(tabgrob,ttgrob,1,1)
 	tabgrob <- gtable::gtable_add_grob(tabgrob,tg,2,1)
 	return(tabgrob)
