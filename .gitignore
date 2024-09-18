@@ -1,0 +1,6 @@
+.Rproj.user
+pkgdown
+docs
+inst/doc
+.Rhistory
+_pkgdown.yml

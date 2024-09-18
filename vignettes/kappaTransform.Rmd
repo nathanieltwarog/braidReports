@@ -1,0 +1,139 @@
+---
+title: "Transforming BRAID kappa"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Transforming BRAID kappa}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup, include=FALSE}
+library(braidReports)
+set.seed(20240901)
+```
+
+## Introduction
+
+One of the more subtle recurring issues we have encountered with communicating
+about the BRAID model is the asymmetric nature of antagonism and synergy as
+they are represented by the BRAID interaction parameter $\kappa$.  On the most
+basic level, the parameter is quite straightforward: surfaces with negative
+$\kappa$ values are antagonistic, and surfaces with positive $\kappa$ values are
+synergistic.  But the mathematical form of the BRAID model means that $\kappa$
+values can only go as low as $-2$, but they can stretch as far into the positive
+domain as they like.  This means that values like $-1.96$ and $50$ can reflect
+similarly extreme deviations from additivity, something that can be very 
+confusing if values are plotted on a standard linear scale.
+
+A solution to this issue when plotting is to transform $\kappa$ into a space
+where antagonistic and synergistic values can both stretch indefinitely, much
+as using a log-transformations allows positive values to be plotted further
+and further out as they get closer to zero.  One such transformation is:
+
+$$
+T(\kappa) = \log\left(\frac{\kappa+2}{2}\right)
+$$
+
+This transformed value can extend to both negative and positive infinity, maps
+BRAID additivity to zero (that is, $T(0)=0$), and gives similar shifts in
+potency from antagonism and synergy similar magnitudes.  Unfortunately, writing
+this transformation in every time one wants to plot a set of $\kappa$ values 
+can get extremely tedious; so the `braidReports` package includes a bespoke
+`transform` object to perform and label the transformation, as well as 
+functions for plotting x- and y-coordinates in this $\kappa$-transformed space
+in the `ggplot` plotting system.
+
+## The Merck OPPS Dataset
+
+The enclosed datasets `merckValues_unstable` and `merckValues_stable` contain
+the results of running a version 1.0.0 BRAID model fit on the roughly twenty-two
+thousand combinations in the Merck oncopolypharmacology screen (or OPPS).  The
+only difference between the datasets is that `merckValues_unstable` contains
+the results of performing BRAID fitting *without* Bayesian stabilization, while
+`merckValues_stable` contains the results of fitting with the default "moderate"
+Bayesian stabilization.  The two datasets are therefore ideal for examining the
+effect of Bayesian stabilization on the broad behavior of $\kappa$.  Let's first
+try plotting the unstabilized $\kappa$ values using a traditional linear scale:
+
+```{r}
+ggplot(merckValues_unstable,aes(x=kappa,y=factor(1)))+
+	geom_jitter()+
+	geom_violin(fill="#f3aaa9")+
+	scale_x_continuous("BRAID kappa")
+```
+
+The result is not very informative.  It's clear that there is a pocket of 
+$\kappa$ values which have been raised to a maximum value of 100, while the
+vast majority of values are down near zero, but it is impossible to discern
+any structure to the values closest to zero.  Is the value biased towards
+synergy or antagonism?  Is there a similar pocket of extremal negative kappa values? 
+A linearly scaled kappa makes these questions nearly impossible to answer.  
+A properly transformed and symmetrized kappa, on the other hand, is much easier
+to grasp:
+
+```{r}
+ggplot(merckValues_unstable,aes(x=kappa,y=factor(1)))+
+	geom_jitter()+
+	geom_violin(fill="#f3aaa9")+
+	scale_x_kappa("BRAID kappa")
+```
+
+Now the patterns are much more clear.  There is indeed a pocket of values at 
+the minimum allowed fit for $\kappa$ (in this case -1.96). Nevertheless, the
+overwhelming majority of values lie in a smooth, nearly normal distribution
+centered near zero, albeit with a slight bias towards antagonism.  But the
+number of response surfaces with extreme $\kappa$ values is disheartening;
+while it is possible that all of those 2000 combinations at either end truly
+exhibit extremely pronounced interactions, the more mundane (and hence more
+likely) explanation is that most or all of these fits result from over-fit
+noise in under-determined surfaces.  To test this, let's see what the
+distribution looks like *with* Bayesian stabilization:
+
+```{r}
+ggplot(merckValues_stable,aes(x=kappa,y=factor(1)))+
+	geom_jitter()+
+	geom_violin(fill="#9db2cb")+
+	scale_x_kappa("BRAID kappa")
+```
+
+Sure enough, our pockets of extreme values have been almost completely
+eliminated.  Yet importantly, the shape of the central distribution is nearly
+identical, indicating that the introduction of Bayesian stabilization did not
+serve to suppress the value of $\kappa$ altogether.
+
+## Plotting with Other Values
+
+The transformed kappa space is also ideal for plotting alongside other relevant
+values and making comparisons between different sets of results.  The following
+plot, for example, depicts the joint distribution of $\kappa$ values and IAE
+(index of achievable efficacy) values for all combinations involving each of the
+38 drugs in the OPPS:
+
+```{r, fig.height=7, fig.width=8}
+merckValues_full <- merckValues_stable
+merckValues_full[,c("drugA","drugB")] <- merckValues_stable[,c("drugB","drugA")]
+merckValues_full <- rbind(merckValues_stable,merckValues_full)
+
+ggplot(merckValues_full,aes(x=kappa,y=IAE))+
+	geom_density2d()+
+	geom_vline(xintercept = 0,colour="black",linetype=2)+
+	scale_x_kappa("BRAID kappa",labels=as.character)+
+	scale_y_log10("IAE")+
+	facet_wrap(vars(drugB),ncol=6)
+```
+
+While it should come as no surprise that combinations involving certain drugs
+would be, on average, more potent than those involving others, this plot
+makes such comparisons extremely clear.  Furthermore, it reveals the much less
+obvious fact that some drugs exhibit noticeably different patterns of 
+*interaction* than others, with some drugs, such as bortezomib, dinaciclib,
+and methotrexate, exhibiting a clear bias towards antagonism, and others,
+including the experimental MK-2206 and BEZ-235, showing a much more pronounced
+tendency towards synergy.

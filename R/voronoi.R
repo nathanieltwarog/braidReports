@@ -5,7 +5,7 @@ voronoi <- function(pts,bbox=NULL) {
 		f <- 1/(2*sqrt(nrow(pts)))
 		bbox <- c((1+f)*rx-f*rx[c(2,1)],(1+f)*ry-f*ry[c(2,1)])
 	}
-	
+
 	tris <- delaunay(pts,bbox)
 	delsegs <- array(0,dim=c(0,7))
 	for (ti in 1:nrow(tris)) {
@@ -23,7 +23,7 @@ voronoi <- function(pts,bbox=NULL) {
 			} else if (nrow(delsegs)>0) { delsegs[match,3:4] <- c(cx,cy) }
 		}
 	}
-	
+
 	adelsegs <- delsegs
 	outs <- is.infinite(adelsegs[,3])
 	adelsegs[,7] <- 1*outs
@@ -109,7 +109,7 @@ voronoi <- function(pts,bbox=NULL) {
 		allpolys <- rbind(allpolys,cbind(ppoly,rep(p,times=nrow(ppoly))))
 	}
 	allpolys <- as.data.frame(allpolys)
-	names(allpolys) <- c("x","y","poly")
+	names(allpolys) <- c("x","y","group")
 	return(allpolys)
 }
 
@@ -124,7 +124,7 @@ delaunay <- function(pts,bbox=NULL) {
 	rord <- 1:nrow(pts)
 	# rord <- sample(nrow(pts))
 	pts <- pts[rord,]
-	
+
 	p3 <- which((pts[3:nrow(pts),1]-pts[1,1])*(pts[2,2]-pts[1,2])-(pts[3:nrow(pts),2]-pts[1,2])*(pts[2,1]-pts[1,1])!=0)
 	if (length(p3)==0) { stop("All points colinear.  This is not handled yet.") }
 	else { p3 <- p3[1]+2 }
@@ -132,7 +132,7 @@ delaunay <- function(pts,bbox=NULL) {
 		pts[c(3,p3),] <- pts[c(p3,3),]
 		rord[c(3,p3)] <- rord[c(p3,3)]
 	}
-	
+
 	tsign <- det(as.matrix(cbind(pts[1:3,],rep(1,times=3))))
 	if (tsign>0) {
 		tris <- array(c(1,2,3),dim=c(1,3))
@@ -196,7 +196,7 @@ delaunay <- function(pts,bbox=NULL) {
 			# Determine convex hull edges that face point
 			# Add triangle with new point for each hull edge
 			# Add previous hull edges to "flip list"
-			
+
 			if (hullsign[1]<=0 && hullsign[nrow(hull)]<=0) {
 				fst <- min(which(hullsign>0))
 				lst <- max(which(hullsign>0))
@@ -220,8 +220,8 @@ delaunay <- function(pts,bbox=NULL) {
 		}
 		if (length(fliplist)==0) { next }
 		else if (length(fliplist)==3) { fliplist <- array(fliplist,dim=c(1,3)) }
-		
-		
+
+
 		# Loop through flip list
 		iter <- 1
 		while (iter<=nrow(fliplist)) {
@@ -243,7 +243,7 @@ delaunay <- function(pts,bbox=NULL) {
 			tri2 <- tri2[1]
 			fmat <- cbind(pts[fseg[1:3],1]-pts[fseg[4],1],pts[fseg[1:3],2]-pts[fseg[4],2],
 							pts[fseg[1:3],1]^2-pts[fseg[4],1]^2+pts[fseg[1:3],2]^2-pts[fseg[4],2]^2)
-			
+
 			if (det(as.matrix(fmat))>0) {
 				tri1 <- which(tris[,1]==fseg[1]&tris[,2]==fseg[2])
 				if (length(tri1)==0) {
@@ -283,7 +283,7 @@ delaunay <- function(pts,bbox=NULL) {
 			} else { iter <- iter+1 }
 		}
 	}
-	
+
 	tris <- array(rord[tris],dim=dim(tris))
 	return(tris)
 }

@@ -1,0 +1,136 @@
+---
+title: "Run and Report BRAID Analyses"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Run and Report BRAID Analyses}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup, include=FALSE}
+library(braidReports)
+set.seed(20240805)
+```
+
+## Introduction
+
+This vignette gives a basic rundown of the two centerpiece functions of the 
+`braidReports` package, `runBraidAnalysis()` and `makeBraidReport()`.  Of 
+course, the term "centerpiece" here is a bit misleading, given that in a sense
+these are also the two most superfluous functions in the BRAID package suite.
+In reality, they're nothing more than convenient wrappers for a large set of
+functionalities that users can, and in many cases should, delve into themselves,
+as doing so will allow them more freedom, more flexibility, and more control.
+But the tasks performed by these functions are so commonly required, and so
+convenient to package, that we felt that it was necessary to build them.
+
+The first and simpler of these two functions is `runBraidAnalysis()`.  Taking
+the same parameter set as `findBestBraid()` from `braidrm`, it uses that function to perform
+a BRAID fit (with model selection) of the given data.  It also performs
+individual Hill dose-response fits of both included drugs by fitting the data
+points where the partner drug has a concnetration of zero.  This results in a
+`braidAnalysis` object, containing a BRAID fit of class `bradirm`, and up to
+two Hill dose response fits describing the dose response behavior of each
+individual drug. (If either drug was not measured in isolation for any of the
+provided data points, the corresponding Hill fit will be omitted.)  The
+`braidAnalysis` object can then be passed to `makeBraidReport()` to visualize
+the completed analysis.
+
+```{r}
+surface <- synergisticExample
+synergisticAnalysis <- runBraidAnalysis(measure ~ concA + concB,
+										surface,
+										defaults = c(0,2))
+
+names(synergisticAnalysis)
+```
+
+There may be cases in which the user would prefer not to use the results of
+`findBestBraid()` in their analysis, but still produce a report.  It is
+therefore possible to pass any BRAID fit object of class `bradirm` to the
+`makeBraidReport()` function using the `basicBraidAnalysis()` function, which
+simply wraps its input into a `braidAnalysis` object.
+
+```{r}
+otherSurface <- antagonisticExample
+antagonisticFit <- braidrm(measure ~ concA + concB,
+						   otherSurface, model="kappa2")
+antagonisticAnalysis <- basicBraidAnalysis(antagonisticFit)
+
+names(antagonisticAnalysis)
+
+```
+
+## BRAID Report Pages
+
+The `makeBraidReport()` function takes a fully analyzed combination surface
+(respresented by a `braidAnalysis` object) and produces a one page report with
+a range of plots and tables summarizing many aspects of the analysis. These 
+reports are assembled into a single grid, designed for a standard 8.5 by 11
+page, using the `cowplot` package.  The report includes response surface
+plots of the raw and fitted data, tables summarizing the best-fit parameters
+and metrics, as well as other plots such as potentiation plots and additive
+comparison plots if desired.  Here is the default appearance:
+
+```{r, fig.width=8,fig.height=10}
+report <- makeBraidReport(synergisticAnalysis,c("A Drug","B Drug"),
+						  c(0.5,0.9),c(5,5))
+print(report)
+```
+
+The `control` parameter of the function allows the user to specify a long list
+of customizations that alter the appearance of the final report.  This includes
+the abbreviations of drugs used in plots and charts, drug units, color scales,
+and more.
+
+```{r, fig.width=8, fig.height=10}
+syncontrol <- list(abbs=c("A","B"),units=c("\u00B5M"),leveltext=c("50","90"),
+				   xscale=scale_x_log10(breaks=c(0.1,0.5,2,10),
+				   					 labels=as.character),
+				   fillscale=scale_fill_viridis_c(option="A"),
+				   colorscale=scale_color_brewer(palette="Set1"),
+				   title="Example Analysis")
+nextReport <- makeBraidReport(synergisticAnalysis,c("A Drug","B Drug"),
+						  c(0.5,0.9),c(5,5),control=syncontrol)
+print(nextReport)
+```
+
+The `control` parameter can also be used to change the overall layout of the
+report page (options are "simple", "standard", and "dense"), and add additional
+combination metrics to the included tables:
+
+```{r, fig.width=8, fig.height=10}
+concs <- cbind(otherSurface$concA,otherSurface$concB)
+act <- otherSurface$measure
+
+otherSurface$bliss <- deviationSurface(concs,act,"Bliss",range=c(0,1))
+otherSurface$zip <- deviationSurface(concs,act,"ZIP",range=c(0,1))
+comboRows <- otherSurface$concA>0 & otherSurface$concB>0
+
+ufit <- fitUrsaModel(measure ~ concA + concB, otherSurface)
+
+metrics <- character()
+metrics[["V[Bliss]"]] <- signif(mean(otherSurface$bliss[comboRows]),3)
+metrics[["ZIP~delta"]] <- signif(mean(otherSurface$zip[comboRows]),3)
+metrics[["URSA~alpha"]] <- signif(coef(ufit)[["alpha"]],3)
+
+finalReport <- makeBraidReport(antagonisticAnalysis,
+							   compounds=c("First Drug","Second Drug"),
+							   levels = c(0.5,0.9), limits=c(8,8),
+							   control=list(metrics=metrics,layout="simple"))
+print(finalReport)
+```
+
+Note that the names of metrics are parsed into more formatted expressions using 
+the base `parse()` function; this allows the use of subscripts and certain
+symbols, but necessitates using the tilde (`~`) to include spaces.
+
+See the documentation of `makeBraidReport()` for a more complete listing of 
+the possible customization options.

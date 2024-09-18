@@ -1,0 +1,398 @@
+---
+title: "Plotting BRAID Surfaces"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Plotting BRAID Surfaces}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup, include = FALSE}
+library(braidReports)
+set.seed(20240828)
+```
+
+## Introduction
+
+The `ggplot` package is one of the most powerful and widely used tool-kits available
+for visualizing data in R, and it's easy to understand why.  Its well-crafted
+grammar of layers, aesthetics, scales, and facets allows for extraordinary
+versatility and power but with remarkable intuitiveness and delightfully tidy
+code.  It is personally my nearly universal go-to for generating visual expressions
+of data; but when plotting drug combination data, it has some understandable
+friction points.  Consider the following example:
+
+```{r}
+concentrations <- c(0,2^(-3:3))
+surface <- data.frame(
+	concA = rep(rep(concentrations,each=length(concentrations)),each=3),
+	concB = rep(rep(concentrations,times=length(concentrations)),each=3),
+	replicate = rep(c(1,2,3),times=(length(concentrations)^2))
+)
+surface$actual <- evalBraidModel(
+	surface$concA,
+	surface$concB,
+	c(1, 1, 3, 3, 2, 0, 100, 100, 100)
+)
+surface$measure <- surface$actual + rnorm(nrow(surface),sd=7)
+
+head(surface, 12)
+```
+
+This synthetic dataset reflects a a fairly typical combination study layout:
+both drugs have been tested at a range of serially diluted concentrations, and
+combined doses have been laid out in a a checkerboard so that every combination
+of concentration of the first drug (including 0) and the second drug (including
+0) has been tested.  Furthermore, each combined dose is tested in triplicate.
+The measured response surface has been simulated using a BRAID response surface
+model with a synergistic $\kappa$ value of 2, but any smoothly varying, noisily
+measured function of two doses would work just as well.
+
+How might we visualize such a response surface using `ggplot2`? A 3-D plot is 
+right out: `ggplot2` has no standard support for such plots, nor should it, as
+3-D plots are notoriously poor at conveying accurate quantitative information.
+A more straightforward approach would be to plot our measured effect as a
+function of one concentration, conditioned on the level of the other. For
+example:
+
+```{r, warning=FALSE}
+ggplot(surface,aes(x=concA,y=measure,colour=factor(concB)))+
+	geom_point()+
+	stat_summary(geom="line",fun.data=mean_se)+
+	scale_x_log10()+
+	labs(x="Drug A",y="Effect",colour="Drug B")
+```
+
+This view is quite effective, and gives a clear sense of how the presence of
+differing amounts of drug B impact the behavior of drug B. But this plotting
+approach necessarily differentiates between the two drugs in how they are
+visualized, and is ineffective at showing the shape of their interaction.
+
+The most intuitive way to present combination data is with the use of a
+response surface heatmap: plot the two doses as the x- and y- dimensions, and
+visualize their effect using a suitable color scale.  Unfortunately, our dataset
+includes multiple measurements for each combination; were we to plot these
+using something like `geom_tile()` each replicate would be plotted over the
+others, so that only the last replicates were visible.  `ggplot2` does contain
+one way to address this out-of-the-box, [stat_summary_2d()], but it doesn't
+behave exactly as we'd like:
+
+```{r, warning=FALSE}
+ggplot(surface, aes(x=concA,y=concB))+
+	stat_summary_2d(aes(z=measure), fun="mean")+
+	scale_x_log10()+
+	scale_y_log10()+
+	scale_fill_distiller(palette="RdYlBu")+
+	coord_equal()+
+	labs(x="Drug A",y="Drug B",fill="Effect")
+```
+
+Not only are our evenly spaced concentrations pairs reduced to awkwardly rounded
+mini-tiles, all measurements where either drug is zero have been removed from
+the plot altogether.  This is an intrinsic property of nearly all `ggplot2` 
+stats and geoms: if a transformed coordinate is infinite, it is removed from the
+plot.  Yet plotting serially diluted concentrations on a logarithmic scale is
+incredibly intuitive, making comparison of non-zero concentrations and zero
+concentrations frustratingly difficult.  It is for these reasons that we 
+developed `geom_braid()`:
+
+```{r, warning=FALSE}
+ggplot(surface,aes(x=concA,y=concB))+
+	geom_braid(aes(fill=measure))+
+	scale_x_log10()+
+	scale_y_log10()+
+	scale_fill_distiller(palette="RdYlBu")+
+	coord_equal()+
+	labs(x="Drug A",y="Drug B",fill="Effect")
+```
+
+Like many `ggplot2` extensions, `geom_braid()` is in reality a `Stat`,
+performing some useful preprocessing of the data before passing it off to the
+true geom, `geom_tile()`. Duplicate concentration pairs are identified, and
+averaged to give the aggregate value at each unique pair.  Widths between doses
+pairs are guessed or provided. Coordinates which, after being transformed, would
+be infinite are instead offset from the main body of measurements, ensuring
+they will be plotted along with the data.  The result is a simple and intuitive
+tool for quickly examining combined action data.
+
+## Customizing BRAID Heatmaps
+
+As a `ggplot2` extension, `geom_braid()` leverages all of the customization
+and flexibility `ggplot` objects traditionally afford, including integration
+with other layers, `ggplot` fill scales, and faceting:
+
+```{r, warning=FALSE}
+ggplot(surface,aes(x=concA,y=concB))+
+	geom_braid(aes(fill=measure))+
+	geom_point(colour="black")+
+	scale_x_log10("Drug A")+
+	scale_y_log10("Drug B")+
+	scale_fill_viridis_c("Effect",option="A")+
+	coord_equal()+
+	facet_wrap(vars(replicate))
+```
+
+Widths and heights of tiles can (and generally should) be generated 
+automatically, but can be passed to the stat as additional aesthetics if 
+desired. Note that widths and heights should be expressed in the *transformed*
+coordinate space:
+
+```{r, warning=FALSE}
+surface$tilewidth <- log10(2)*0.9
+surface$tilewidth[surface$concA==0] <- log10(2)/2
+
+surface$tileheight <- log10(2)*0.9
+surface$tileheight[surface$concB==0] <- log10(2)/2
+
+ggplot(surface,aes(x=concA,y=concB))+
+	geom_braid(aes(fill=measure,width=tilewidth,height=tileheight),space=3)+
+	scale_x_log10("Drug A")+
+	scale_y_log10("Drug B")+
+	scale_fill_distiller("Effect",palette="RdYlBu")+
+	coord_equal()
+```
+
+## Stained Glass Surfaces
+
+`geom_braid()` is an effective tool for rendering classic checkerboard layouts,
+but there is no guarantee that data will be laid out so cleanly.  Experiments
+might only measure a subset of a traditional checkerboard, or might select
+points on an even denser arrangement. For example, the following adjustment
+simulates an experiment in which measurements from replicates 2 and 3 have
+increased the concentrations of drug A and drug B respectively.  This removes
+the traditional "triplicate" approach in favor of a more varied, full-coverage
+method:
+
+```{r}
+glassSurface <- surface
+glassSurface$concA[glassSurface$replicate==2] <- 
+	glassSurface$concA[glassSurface$replicate==2]*1.25
+glassSurface$concB[glassSurface$replicate==3] <- 
+	glassSurface$concB[glassSurface$replicate==3]*1.25
+
+glassSurface$actual <- evalBraidModel(
+	glassSurface$concA,
+	glassSurface$concB,
+	c(1, 1, 3, 3, -0.5, 0, 60, 100, 100)
+)
+glassSurface$measure <- glassSurface$actual+rnorm(nrow(glassSurface),sd=7)
+
+head(glassSurface, 12)
+```
+
+Due to its irregular spacing, plotting `glassSurface` with `geom_braid()`
+produces a very unsatisfactory plot:
+
+```{r, warning=FALSE}
+ggplot(glassSurface,aes(x=concA,y=concB))+
+	geom_braid(aes(fill=measure))+
+	geom_point(colour="black")+
+	scale_x_log10("Drug A")+
+	scale_y_log10("Drug B")+
+	scale_fill_distiller("Effect",palette="RdYlBu")+
+	coord_equal()
+```
+
+While this plot is *technically* correct, it fails to fill the space in the way
+a response surface should.  When dealing with such irregular sampling, a better
+tool is `geom_braid_glass()` which produces what we call a "stained glass"
+plot:
+
+```{r, warning=FALSE}
+ggplot(glassSurface,aes(x=concA,y=concB))+
+	geom_braid_glass(aes(fill=measure))+
+	geom_point(colour="black")+
+	scale_x_log10("Drug A")+
+	scale_y_log10("Drug B")+
+	scale_fill_distiller("Effect",palette="RdYlBu")+
+	coord_equal()
+```
+
+In a stained glass plot, every point within the bounds of the plotted values is
+colored according to the value of the measured dose pair nearest to it,
+producing a mosaic of Voronoi cells that cover the full space.  Values in the
+margins of the plot are given a height or width according the specified or
+inferred aesthetic, but the boundaries between them are again bisecting Voronoi
+boundaries.
+
+The ability to customize the width of the resulting tiles, particularly in the
+margins, can be even more valuable in these plots, where the width and height
+default to the smallest spacing between distinct values:
+
+
+```{r, warning=FALSE}
+ggplot(glassSurface,aes(x=concA,y=concB))+
+	geom_braid_glass(aes(fill=measure,width=tilewidth,height=tileheight),space=2)+
+	scale_x_log10("Drug A")+
+	scale_y_log10("Drug B")+
+	scale_fill_distiller("Effect",palette="RdYlBu")+
+	coord_equal()
+```
+
+## Smoothed BRAID Response Surfaces
+
+While the discrete heatmaps of `geom_braid` and `geom_braid_glass` are the most
+direct ways to visualize combined action data, the harsh polygonal edges
+introduced can sometimes mask the more important variations in shape and
+structure.  `braidReports` also includes a `ggplot` geom for rendering smoothed
+surfaces, unsurprisingly named `geom_braid_smooth`:
+
+```{r, warning=FALSE}
+ggplot(surface,aes(x=concA,y=concB))+
+	geom_braid_smooth(aes(fill=measure))+
+	scale_x_log10()+
+	scale_y_log10()+
+	scale_fill_distiller(palette="RdYlBu")+
+	coord_equal()+
+	labs(x="Drug A",y="Drug B",fill="Effect")
+```
+
+`geom_braid_smooth` interpolates a regular grid of values from the original
+(potentially irregular) data using a two-dimensional Gaussian kernel, producing
+a smoothed surface that generally hews extremely close to measured values at
+their respective points, but produces intuitive, smoothly varying values in
+between them.  It can be run on both regularly laid-out checkerboard data and
+more irregularly spaced measurements, though in the latter case specifying the
+smoothing width and height explicitly using the `width` and `height` aesthetics
+is often advisable:
+
+```{r, warning=FALSE}
+ggplot(glassSurface,aes(x=concA,y=concB))+
+	geom_braid_smooth(aes(fill=measure))+
+	geom_point(colour="black")+
+	scale_x_log10("Drug A")+
+	scale_y_log10("Drug B")+
+	scale_fill_distiller("Effect",palette="RdYlBu")+
+	coord_equal()
+
+ggplot(glassSurface,aes(x=concA,y=concB))+
+	geom_braid_smooth(aes(fill=measure,width=log10(2),height=log10(2)))+
+	scale_x_log10("Drug A")+
+	scale_y_log10("Drug B")+
+	scale_fill_distiller("Effect",palette="RdYlBu")+
+	coord_equal()
+
+ggplot(glassSurface,aes(x=concA,y=concB))+
+	geom_braid_smooth(aes(fill=measure,width=tilewidth,height=tileheight),space=2)+
+	scale_x_log10("Drug A")+
+	scale_y_log10("Drug B")+
+	scale_fill_distiller("Effect",palette="RdYlBu")+
+	coord_equal()
+```
+
+## Response Surface Contours
+
+Heatmaps are an intuitive and effective way of depicting the results and shape
+of a combined response surface, but they still fall short when it comes to
+quantitative depiction.  Even the best-designed colormap still carries 
+considerable imprecision, making it difficult to perceive the values and ranges
+at which particular numerical values are reached.  One effective tool for this
+task is the contour map, which markes the boundaries of dose space at which a
+given effect level is crossed.  To support such plots, we have included 
+`geom_braid_contour()` which uses the same smoothing techniques as 
+`geom_braid_smooth()` to produces an array of x-, y-, and z-values for the 
+built in `ggplot` stat, `stat_contour()`.  This allows us to visualize both
+the overall shape of the surface *and* the boundaries of particular effect
+spaces:
+
+```{r, warning=FALSE}
+ggplot(surface,aes(x=concA,y=concB))+
+	geom_braid_smooth(aes(fill=measure))+
+	geom_braid_contour(aes(z=measure),breaks=10*(1:9),colour="black",linetype=2)+
+	scale_x_log10()+
+	scale_y_log10()+
+	scale_fill_distiller(palette="RdYlBu")+
+	coord_equal()+
+	labs(x="Drug A",y="Drug B",fill="Effect")
+```
+
+Note that `geom_braid_contour()` uses the smoothed and interpolated values like
+those produced by `geom_braid_smooth()` rather than the discrete values plotted
+by `geom_braid()` or `geom_braid_glass()`.  There are two reasons for this:
+first, the underlying `Stat`, `stat_contour()` requires that the data plotted
+be laid out as a regular grid for it to perform its *own* interpolation.
+Second, contours linearly interpolated between more parsely sampled data are
+often disjointed and jagged, and carry much less information than more smoothly
+interpolated values.
+
+As with `geom_braid_smooth()`, `geom_braid_contour()` can be applied to both
+regular and irregular data, but with irregular data more care must be taken
+with the smoothing widths and heights:
+
+```{r, warning=FALSE}
+ggplot(glassSurface,aes(x=concA,y=concB))+
+	geom_braid_smooth(aes(fill=measure))+
+	geom_point(colour="black")+
+	geom_braid_contour(aes(z=measure),breaks=10*(1:9),colour="black",linetype=2)+
+	scale_x_log10("Drug A")+
+	scale_y_log10("Drug B")+
+	scale_fill_distiller("Effect",palette="RdYlBu")+
+	coord_equal()
+
+ggplot(glassSurface,aes(x=concA,y=concB))+
+	geom_braid_smooth(aes(fill=measure,width=tilewidth,height=tileheight),space=2)+
+	geom_braid_contour(aes(z=measure,width=tilewidth,height=tileheight),space=2,
+					   breaks=10*(1:9),colour="black",linetype=2)+
+	scale_x_log10("Drug A")+
+	scale_y_log10("Drug B")+
+	scale_fill_distiller("Effect",palette="RdYlBu")+
+	coord_equal()
+```
+
+It should also be noted that while we have plotted contours and smoothed
+surfaces together here, this is only to highlight their connection to the
+underlying interpolated data.  BRAID contours can be plotted all on their own
+which can be quite effective at comparing the results of different surfaces:
+
+```{r, warning=FALSE}
+surface$type <- "Synergy"
+glassSurface$type <- "Antagonism"
+allSurface <- rbind(surface,glassSurface)
+allSurface$type <- factor(allSurface$type,c("Synergy","Antagonism"))
+
+ggplot(allSurface,aes(x=concA,y=concB,colour=type))+
+	geom_point()+
+	geom_braid_contour(aes(z=measure,width=tilewidth,height=tileheight),
+					   breaks=c(50,90), tight=TRUE)+
+	scale_x_log10()+
+	scale_y_log10()+
+	scale_color_brewer("Surface Type",palette="Set1")+
+	coord_equal()+
+	labs(x="Drug A",y="Drug B")
+```
+
+## A Word About Warnings
+
+Astute `ggplot2` observers will note that at several points throughout this 
+vignette, we have run standard `ggplot2` geoms such as `geom_point()` on 
+logarithmically transformed data that result in infinite (transformed) values.
+Ordinarily, this would produce a warning: and in reality, it produces a warning
+here as well.  We have suppressed warnings for this vignette, because while
+the `braid`, `braid_glass`, and `braid_smooth` geoms all explicitly handle such
+infinite transformed values, we have been unable to find a way to suppress 
+these built in warnings.  The warnings result, not when a stat is running, but
+*before* its functions are handled, and as such are, for the time being, 
+unavoidable.  When running a BRAID plotting function yourself, you will
+encounter these warnings as well:
+
+```{r}
+# With warnings enabled...
+ggplot(surface,aes(x=concA,y=concB))+
+	geom_braid(aes(fill=measure))+
+	scale_x_log10()+
+	scale_y_log10()+
+	scale_fill_distiller(palette="RdYlBu")+
+	coord_equal()+
+	labs(x="Drug A",y="Drug B",fill="Effect")
+```
+
+While we feel that it is an unfortunate reality, we hope that this is a small
+enough inconvenience that the overall versatility and expressiveness of the
+BRAID plotting function outweighs it.
