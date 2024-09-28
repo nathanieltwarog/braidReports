@@ -160,7 +160,7 @@ Summarize and plot measurements of two inputs as a discrete raster or
 "stained-glass" plot
 }
 \details{
-While the existing \link{ggplot2} package includes several functions that are
+While the existing \code{ggplot2} package includes several functions that are
 extremely effective and versatile for visualizing two-dimensional responses,
 including \code{\link[ggplot2:geom_tile]{ggplot2::geom_raster()}}, \code{\link[ggplot2:geom_tile]{ggplot2::geom_tile()}}, and
 \code{\link[ggplot2:geom_contour]{ggplot2::geom_contour()}}, a number of considerations particular to combination
@@ -174,7 +174,7 @@ A second, and much more challenging consideration, is that for many drug
 combination studies, drug concentrations are measured as a series of equal
 ratio dilutions; visualizing such doses is most intuitive on a logarithmic
 scale.  But when inputs are scaled logarithmically, zeros become infinite
-and are automatically removed by nearly all \link{ggplot2} functions.  This makes
+and are automatically removed by nearly all \code{ggplot2} functions.  This makes
 it very difficult to plot measurements of drugs in isolation and in
 combination in the same plot.  \code{geom_braid} addresses this by automatically
 offsetting any measurements whose transformed coordinates are infinite to

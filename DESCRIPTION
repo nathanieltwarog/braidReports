@@ -3,10 +3,10 @@ Title: Visualize Combined Action Response Surfaces and Report BRAID Analyses
 Version: 1.0.1
 Authors@R: c(
     person("Anang", "Shelat", email = "anang.shelat@stjude.org", role = c("aut")),
-    person("Nathaniel", "Twarog", , email ="nathaniel.twarog@stjude.org", role = c("aut", "cre")))
+    person("Nathaniel R.", "Twarog", , email ="nathaniel.twarog@stjude.org", role = c("aut", "cre")))
 Description: Provides functions to visualize combined action data in ggplot2.
     Also provides functions for producing full BRAID analysis reports with 
-    customizable layouts and aesthetics.
+    custom layouts and aesthetics.
 License: GPL (>= 3)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)

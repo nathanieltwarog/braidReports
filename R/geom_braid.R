@@ -23,7 +23,7 @@
 #' warning. If `TRUE`, missing values are silently removed.
 #'
 #' @details
-#' While the existing [ggplot2] package includes several functions that are
+#' While the existing `ggplot2` package includes several functions that are
 #' extremely effective and versatile for visualizing two-dimensional responses,
 #' including [ggplot2::geom_raster()], [ggplot2::geom_tile()], and
 #' [ggplot2::geom_contour()], a number of considerations particular to combination
@@ -37,7 +37,7 @@
 #' combination studies, drug concentrations are measured as a series of equal
 #' ratio dilutions; visualizing such doses is most intuitive on a logarithmic
 #' scale.  But when inputs are scaled logarithmically, zeros become infinite
-#' and are automatically removed by nearly all [ggplot2] functions.  This makes
+#' and are automatically removed by nearly all `ggplot2` functions.  This makes
 #' it very difficult to plot measurements of drugs in isolation and in
 #' combination in the same plot.  `geom_braid` addresses this by automatically
 #' offsetting any measurements whose transformed coordinates are infinite to

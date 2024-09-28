@@ -8,10 +8,10 @@
 \description{
 \if{html}{\figure{logo.png}{options: style='float: right' alt='logo' width='120'}}
 
-Provides functions to visualize combined action data in ggplot2. Also provides functions for producing full BRAID analysis reports with customizable layouts and aesthetics.
+Provides functions to visualize combined action data in ggplot2. Also provides functions for producing full BRAID analysis reports with custom layouts and aesthetics.
 }
 \author{
-\strong{Maintainer}: Nathaniel Twarog \email{nathaniel.twarog@stjude.org}
+\strong{Maintainer}: Nathaniel R. Twarog \email{nathaniel.twarog@stjude.org}
 
 Authors:
 \itemize{
