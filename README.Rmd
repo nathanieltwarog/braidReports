@@ -28,7 +28,7 @@ and breadth of the `ggplot2` plotting system.
 Here is how you would run a full BRAID analysis (using the `braidrm` example
 dataset `synergisticExample`) and produce a one-page report:
 
-```{r example}
+```{r example, warning=FALSE}
 library(braidReports)
 ## Run and Report a BRAID Analysis:
 surface <- synergisticExample

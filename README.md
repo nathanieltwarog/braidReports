@@ -19,7 +19,6 @@ example dataset `synergisticExample`) and produce a one-page report:
 library(braidReports)
 #> Loading required package: braidrm
 #> Loading required package: ggplot2
-#> Warning: package 'ggplot2' was built under R version 4.4.1
 ```
 
 ``` r
