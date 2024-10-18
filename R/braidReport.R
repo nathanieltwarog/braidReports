@@ -302,8 +302,13 @@ makeBraidReport <- function(analysis,compounds,levels,limits,control=list()) {
 		stop("Control parameter \"fillscale\" must be ggplot2 fill scale,")
 	}
 
-	valrange <- range(c(mainDF$act,mainDF$afit,mainDF$bfit))
-	errrange <- range(c(mainDF$aerror,mainDF$berror))
+	if (control$layout=="dense") {
+		valrange <- range(c(mainDF$act,mainDF$afit,mainDF$bfit))
+		errrange <- range(c(mainDF$aerror,mainDF$berror))
+	} else {
+		valrange <- range(c(mainDF$act,mainDF$bfit))
+		errrange <- range(c(mainDF$berror))
+	}
 	blankdf <- data.frame(conc1=stats::median(mainDF$conc1,na.rm=TRUE),
 						  conc2=stats::median(mainDF$conc2,na.rm=TRUE),
 						  act=valrange,bfit=valrange,afit=valrange,

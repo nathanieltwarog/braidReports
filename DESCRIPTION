@@ -1,6 +1,6 @@
 Package: braidReports
 Title: Visualize Combined Action Response Surfaces and Report BRAID Analyses
-Version: 1.0.1
+Version: 1.0.2
 Authors@R: c(
     person("Anang", "Shelat", email = "anang.shelat@stjude.org", role = c("aut")),
     person("Nathaniel R.", "Twarog", , email ="nathaniel.twarog@stjude.org", role = c("aut", "cre")))
